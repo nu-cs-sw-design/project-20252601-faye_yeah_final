@@ -1,0 +1,6 @@
+<FindBugsFilter>
+    <!-- Exclude "Malicious code vulnerability" -->
+    <Match>
+        <Bug category="MALICIOUS_CODE"/>
+    </Match>
+</FindBugsFilter>
