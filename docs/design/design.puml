@@ -122,6 +122,33 @@ package "Domain Layer" {
     IMPLODING_KITTENS
   }
 
+  class Deck {
+    - List<Card> deck
+    - Random rand
+    - GameType gameType
+    - int numberOfPlayers
+    - int maxDeckSize
+    - Instantiator instantiator
+    + Deck(List<Card> deck, Random rand, GameType gameType, int numberOfPlayers, int maxDeckSize, Instantiator instantiator)
+    + int getDeckSize()
+    + Card getCardAtIndex(int index)
+    + void initializeDeck()
+    + void shuffleDeck()
+    + void insertCard(CardType cardType, int numberOfCards, boolean bottom)
+    + Card drawCard()
+    + Card drawCardFromBottom()
+    + void setNumberOfPlayers(int numberOfPlayers)
+    + void chooseGameType(GameType gameType)
+    + int removeBombs()
+    + void insertExplodingKittenAtIndex(int indexToInsert)
+    + void insertImplodingKittenAtIndex(int indexToInsert, Card card)
+    # CardType getCardTypeAtIndex(int index)
+    + void reorderDeckCards(int[] newOrderIndices, List<Card> cardsToReorder)
+    - boolean addedOutOfBounds(int numberOfCards)
+    - boolean checkIfExplodingKitten(int index)
+    - boolean checkIfIndexOutOfRange(int index)
+  }
+
   class Player {
     - int playerID
     - List<Card> hand
@@ -230,33 +257,6 @@ package "Domain Layer" {
 }
 
 package "Data Source Layer" {
-  class Deck {
-    - List<Card> deck
-    - Random rand
-    - GameType gameType
-    - int numberOfPlayers
-    - int maxDeckSize
-    - Instantiator instantiator
-    + Deck(List<Card> deck, Random rand, GameType gameType, int numberOfPlayers, int maxDeckSize, Instantiator instantiator)
-    + int getDeckSize()
-    + Card getCardAtIndex(int index)
-    + void initializeDeck()
-    + void shuffleDeck()
-    + void insertCard(CardType cardType, int numberOfCards, boolean bottom)
-    + Card drawCard()
-    + Card drawCardFromBottom()
-    + void setNumberOfPlayers(int numberOfPlayers)
-    + void chooseGameType(GameType gameType)
-    + int removeBombs()
-    + void insertExplodingKittenAtIndex(int indexToInsert)
-    + void insertImplodingKittenAtIndex(int indexToInsert, Card card)
-    # CardType getCardTypeAtIndex(int index)
-    + void reorderDeckCards(int[] newOrderIndices, List<Card> cardsToReorder)
-    - boolean addedOutOfBounds(int numberOfCards)
-    - boolean checkIfExplodingKitten(int index)
-    - boolean checkIfIndexOutOfRange(int index)
-  }
-
   class Instantiator {
     + Card createCard(CardType cardType)
     + Random createRandom()
