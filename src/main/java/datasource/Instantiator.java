@@ -1,5 +1,7 @@
-package domain.game;
+package datasource;
 
+import domain.game.Card;
+import domain.game.CardType;
 import java.util.ArrayList;
 import java.util.Random;
 import java.security.SecureRandom;
