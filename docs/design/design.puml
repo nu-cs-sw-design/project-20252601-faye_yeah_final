@@ -1,260 +1,267 @@
-@startuml
-class Card {
-  - CardType cardType
-  - boolean isMarked
-  - boolean isFacedUp
-  + Card(CardType cardType)
-  + CardType getCardType()
-  + void markCard()
-  + boolean checkIfMarked()
-  + void setFacedUp()
-  + boolean checkIfFacedUp()
+@startuml ThreeLayerArchitecture
+
+package "Presentation Layer" {
+  class GameUI {
+    - Game game
+    - ResourceBundle messages
+    + GameUI(Game game)
+    + void chooseLanguage()
+    + void chooseGame()
+    + void chooseNumberOfPlayers()
+    - int checkValidPlayerIndexInput()
+    - void startAttackFollowUp(boolean targeted)
+    - void swapTopAndBottom()
+    - void playAttack(boolean targeted)
+    - void playGarbageCollection()
+    - void printPlayerTurn()
+    - int playedCard()
+    - int playSpecialCombo()
+    - void playNope(int playerIndex)
+    - boolean checkAllPlayersForNope(int playerIndex)
+    - boolean playExplodingKitten(int playerIndex)
+    - boolean endTurn()
+    - boolean checkIfTheyEndTurn()
+    - void playCurseOfTheCatButt()
+    - void playSpecialComboTwoCards(CardType cardType)
+    - void drawFromTheBottom()
+    - void playMark()
+    - void playCatomicBomb()
+    - void playReverse()
+    - void playSpecialComboThreeCards(CardType cardType)
+    - void playSeeTheFuture()
+    - void playShuffle()
+    - void playSkip(boolean superSkip)
+    - void playAlterTheFuture()
+    - boolean checkIfCatCard(CardType cardType)
+    - int checkNumberOfFeralCats(int playerIndex)
+    - void promptCursedMessage()
+    - boolean checkCardIfInvalid(Card card)
+    - boolean playImplodingKitten(Card card)
+    + void startTurn()
+    + void endGame()
+    + boolean checkIfGameOver()
+    - boolean checkUserWithinBounds(int userIndex)
+    - boolean checkUserOutOfBounds(int userIndex)
+    - boolean checkIfPlayerIsAlive(int userIndex)
+    - boolean hasCard(int userIndex, CardType cardType)
+    - boolean hasCardDirect(Player player, CardType cardType)
+    - boolean checkCardWithinBounds(int cardIndex, Player player)
+    - boolean checkCardWithinBoundsIndexed(int cardIndex, int playerIndex)
+    - boolean checkMatchingCardType(CardType cardType, CardType cardTypeTwo)
+    - boolean checkIfPlayerIsCursed(Player player)
+    - boolean checkReversed()
+    - int getHandSize(int playerIndex)
+    - boolean checkIfCardMarked(int playerIndex, int cardIndex)
+    - int getNumberOfPlayers()
+    - boolean checkExplodingKitten(int playerIndex)
+    - boolean checkIfNumberOfTurnsGreaterThanZero()
+    - boolean checkIfNumberOfTurnsIsZero()
+    - boolean checkIfCurrentPlayerTurn(int playerIndex)
+    - int getDeckSize()
+    - boolean matchingGameType(GameType gameType)
+    - boolean checkFeralCat(int numberOfFeralCatsToPlay, int numberOfFeralCats, int numberOfCatType, int threshold)
+    - boolean checkIfDifferentCardType(CardType cardType, CardType cardTypeTwo)
+    - boolean checkAllPlayersNope()
+    - boolean checkNumberOfCards(Player player, CardType cardtype, int threshold)
+    - String getLocalizedCardType(CardType cardType)
+    - boolean checkNegativeIndexDeck(int indexToInsert)
+    - boolean checkIfGreaterThanMaxIndexDeck(int indexToInsert)
+  }
+
+  class Main {
+    + {static} void main(String[] args)
+  }
 }
 
-enum CardType {
-  NOPE
-  DEFUSE
-  ATTACK
-  SHUFFLE
-  SKIP
-  SEE_THE_FUTURE
-  CAT_ONE
-  CAT_TWO
-  CAT_THREE
-  CAT_FOUR
-  EXPLODING_KITTEN
-  STREAKING_KITTEN
-  SWAP_TOP_AND_BOTTOM
-  GARBAGE_COLLECTION
-  CURSE_OF_THE_CAT_BUTT
-  ALTER_THE_FUTURE
-  CATOMIC_BOMB
-  SUPER_SKIP
-  MARK
-  IMPLODING_KITTEN
-  REVERSE
-  FERAL_CAT
-  TARGETED_ATTACK
-  DRAW_FROM_THE_BOTTOM
-  - GameType gameType
-  + CardType(GameType gameType)
+package "Domain Layer" {
+  class Card {
+    - CardType cardType
+    - boolean isMarked
+    - boolean isFacedUp
+    + Card(CardType cardType)
+    + CardType getCardType()
+    + void markCard()
+    + boolean checkIfMarked()
+    + void setFacedUp()
+    + boolean checkIfFacedUp()
+  }
+
+  enum CardType {
+    NOPE
+    DEFUSE
+    ATTACK
+    SHUFFLE
+    SKIP
+    SEE_THE_FUTURE
+    CAT_ONE
+    CAT_TWO
+    CAT_THREE
+    CAT_FOUR
+    EXPLODING_KITTEN
+    STREAKING_KITTEN
+    SWAP_TOP_AND_BOTTOM
+    GARBAGE_COLLECTION
+    CURSE_OF_THE_CAT_BUTT
+    ALTER_THE_FUTURE
+    CATOMIC_BOMB
+    SUPER_SKIP
+    MARK
+    IMPLODING_KITTEN
+    REVERSE
+    FERAL_CAT
+    TARGETED_ATTACK
+    DRAW_FROM_THE_BOTTOM
+    - GameType gameType
+    + CardType(GameType gameType)
+  }
+
+  enum GameType {
+    NONE
+    EXPLODING_KITTENS
+    STREAKING_KITTENS
+    IMPLODING_KITTENS
+  }
+
+  class Player {
+    - int playerID
+    - List<Card> hand
+    - boolean isDead
+    - Random rand
+    - boolean isCursed
+    + Player(int playerID, Instantiator instantiator)
+    + int getPlayerID()
+    + void addDefuse(Card defuse)
+    + void addCardToHand(Card card)
+    + boolean hasCard(CardType cardType)
+    + int getHandSize()
+    + Card getCardAt(int index)
+    + int getIndexOfCard(CardType cardType)
+    + CardType removeCardFromHand(int index)
+    + void shuffleHand()
+    + int checkNumberOfCardsInHand(CardType cardType)
+    + boolean getIsDead()
+    + void setIsDead()
+    + boolean getIsCursed()
+    + void setCursed(boolean isCursed)
+  }
+
+  class Game {
+    - int numberOfPlayers
+    - GameType gameType
+    - Deck deck
+    - Player[] players
+    - Random rand
+    - int currentPlayerTurn
+    - int currentPlayerNumberOfTurns
+    - boolean isReversed
+    - List<Integer> attackQueue
+    - int attackCounter
+    - int numberOfAttacks
+    - int[] turnTracker
+    - boolean attacked
+    + Game(int numberOfPlayers, GameType gameType, Deck deck, Player[] players, Random rand, List<Integer> attackQueue, int[] turnTracker)
+    + void swapTopAndBottom()
+    + Card stealRandomCard(int playerToStealFrom)
+    + void stealTypeCard(CardType cardType, int playerToStealFrom)
+    + void startAttackPhase()
+    + void playAttack()
+    + void playTargetedAttack(int attackedPlayerIndex)
+    + boolean playExplodingKitten(int playerIndex)
+    + void playImplodingKitten()
+    + void playDefuse(int idxToInsertExplodingKitten, int playerIndex)
+    + Card drawFromBottom()
+    + void playCatomicBomb()
+    + void setNumberOfPlayers(int numberOfPlayers)
+    + void playReverse()
+    + void retrieveGameMode(GameType gameType)
+    + Player selectRandomPlayer()
+    + void playShuffle(int numberOfShuffles)
+    + int playSkip(boolean superSkip)
+    + void playGarbageCollection(CardType cardToDiscard)
+    + Deck getDeck()
+    + void incrementPlayerTurn()
+    + void incrementAttackCounter()
+    + void setAttackCounter(int playerIndex)
+    ~ GameType getGameTypeForTesting()
+    + GameType getGameType()
+    + Player getPlayerAtIndex(int playerIndex)
+    + void addAttacks()
+    + void playMark(int playerIndex, int cardIndex)
+    + void addAttackQueue(int attack)
+    + int removeAttackQueue()
+    + boolean isAttackQueueEmpty()
+    + void setPlayerNumberOfTurns()
+    + int getPlayerTurn()
+    + int getNumberOfPlayers()
+    + int checkNumberOfAlivePlayers()
+    + void setCurrentPlayerNumberOfTurns(int numberOfTurns)
+    + void decrementNumberOfTurns()
+    + int getNumberOfTurns()
+    + int getDeckSize()
+    + Card drawCard()
+    + Card getCardAtIndex(int cardIndex)
+    + void removeCardFromHand(int playerIndex, CardType cardType)
+    + int getIndexOfCardFromHand(int playerIndex, CardType cardType)
+    + void addCardToHand(Card card)
+    + boolean checkIfPlayerDead(int playerIndex)
+    + boolean checkIfPlayerHasCard(int playerIndex, CardType cardType)
+    + CardType getCardType(int playerIndex, int cardIndex)
+    + int getHandSize(int playerIndex)
+    + CardType getDeckCardType(int deckIndex)
+    + boolean getIsReversed()
+    # void setCurrentPlayerTurn(int turn)
+    - boolean matchingGameType(GameType gameType)
+    - boolean checkCardOutOfBoundsIndexed(int cardIndex, int playerIndex)
+    - boolean checkUserOutOfBounds(int userIndex)
+    - boolean checkDeckHasOneCardOrLess()
+    - boolean checkPlayerHandEmpty(Player player)
+    - boolean checkInvalidNumberOfPlayers(int numPlayers)
+    - boolean hasZeroPlayers()
+    - boolean checkIfNumberOfTurnsOutOfBounds()
+    - boolean checkIfNumberOfTurnsIsZero()
+    + void setTurnToTargetedIndexIfAttackOccurred()
+    + int getTurnCountOfPlayer(int playerIndex)
+    + boolean getAttacked()
+    + int getAttackCounter()
+    + int getNumberOfAttacks()
+    ~ void setNumberOfAttacks(int numberOfAttacks)
+    ~ void setAttacked(boolean attacked)
+  }
 }
 
-class Deck {
-  - List<Card> deck
-  - Random rand
-  - GameType gameType
-  - int numberOfPlayers
-  - int maxDeckSize
-  - Instantiator instantiator
-  + Deck(List<Card> deck, Random rand, GameType gameType, int numberOfPlayers, int maxDeckSize, Instantiator instantiator)
-  + int getDeckSize()
-  + Card getCardAtIndex(int index)
-  + void initializeDeck()
-  + void shuffleDeck()
-  + void insertCard(CardType cardType, int numberOfCards, boolean bottom)
-  + Card drawCard()
-  + Card drawCardFromBottom()
-  + void setNumberOfPlayers(int numberOfPlayers)
-  + void chooseGameType(GameType gameType)
-  + int removeBombs()
-  + void insertExplodingKittenAtIndex(int indexToInsert)
-  + void insertImplodingKittenAtIndex(int indexToInsert, Card card)
-  # CardType getCardTypeAtIndex(int index)
-  + void reorderDeckCards(int[] newOrderIndices, List<Card> cardsToReorder)
-  - boolean addedOutOfBounds(int numberOfCards)
-  - boolean checkIfExplodingKitten(int index)
-  - boolean checkIfIndexOutOfRange(int index)
-}
+package "Data Source Layer" {
+  class Deck {
+    - List<Card> deck
+    - Random rand
+    - GameType gameType
+    - int numberOfPlayers
+    - int maxDeckSize
+    - Instantiator instantiator
+    + Deck(List<Card> deck, Random rand, GameType gameType, int numberOfPlayers, int maxDeckSize, Instantiator instantiator)
+    + int getDeckSize()
+    + Card getCardAtIndex(int index)
+    + void initializeDeck()
+    + void shuffleDeck()
+    + void insertCard(CardType cardType, int numberOfCards, boolean bottom)
+    + Card drawCard()
+    + Card drawCardFromBottom()
+    + void setNumberOfPlayers(int numberOfPlayers)
+    + void chooseGameType(GameType gameType)
+    + int removeBombs()
+    + void insertExplodingKittenAtIndex(int indexToInsert)
+    + void insertImplodingKittenAtIndex(int indexToInsert, Card card)
+    # CardType getCardTypeAtIndex(int index)
+    + void reorderDeckCards(int[] newOrderIndices, List<Card> cardsToReorder)
+    - boolean addedOutOfBounds(int numberOfCards)
+    - boolean checkIfExplodingKitten(int index)
+    - boolean checkIfIndexOutOfRange(int index)
+  }
 
-class Game {
-  - int numberOfPlayers
-  - GameType gameType
-  - Deck deck
-  - Player[] players
-  - Random rand
-  - int currentPlayerTurn
-  - int currentPlayerNumberOfTurns
-  - boolean isReversed
-  - List<Integer> attackQueue
-  - int attackCounter
-  - int numberOfAttacks
-  - int[] turnTracker
-  - boolean attacked
-  + Game(int numberOfPlayers, GameType gameType, Deck deck, Player[] players, Random rand, List<Integer> attackQueue, int[] turnTracker)
-  + void swapTopAndBottom()
-  + Card stealRandomCard(int playerToStealFrom)
-  + void stealTypeCard(CardType cardType, int playerToStealFrom)
-  + void startAttackPhase()
-  + void playAttack()
-  + void playTargetedAttack(int attackedPlayerIndex)
-  + boolean playExplodingKitten(int playerIndex)
-  + void playImplodingKitten()
-  + void playDefuse(int idxToInsertExplodingKitten, int playerIndex)
-  + Card drawFromBottom()
-  + void playCatomicBomb()
-  + void setNumberOfPlayers(int numberOfPlayers)
-  + void playReverse()
-  + void retrieveGameMode(GameType gameType)
-  + Player selectRandomPlayer()
-  + void playShuffle(int numberOfShuffles)
-  + int playSkip(boolean superSkip)
-  + void playGarbageCollection(CardType cardToDiscard)
-  + Deck getDeck()
-  + void incrementPlayerTurn()
-  + void incrementAttackCounter()
-  + void setAttackCounter(int playerIndex)
-  ~ GameType getGameTypeForTesting()
-  + GameType getGameType()
-  + Player getPlayerAtIndex(int playerIndex)
-  + void addAttacks()
-  + void playMark(int playerIndex, int cardIndex)
-  + void addAttackQueue(int attack)
-  + int removeAttackQueue()
-  + boolean isAttackQueueEmpty()
-  + void setPlayerNumberOfTurns()
-  + int getPlayerTurn()
-  + int getNumberOfPlayers()
-  + int checkNumberOfAlivePlayers()
-  + void setCurrentPlayerNumberOfTurns(int numberOfTurns)
-  + void decrementNumberOfTurns()
-  + int getNumberOfTurns()
-  + int getDeckSize()
-  + Card drawCard()
-  + Card getCardAtIndex(int cardIndex)
-  + void removeCardFromHand(int playerIndex, CardType cardType)
-  + int getIndexOfCardFromHand(int playerIndex, CardType cardType)
-  + void addCardToHand(Card card)
-  + boolean checkIfPlayerDead(int playerIndex)
-  + boolean checkIfPlayerHasCard(int playerIndex, CardType cardType)
-  + CardType getCardType(int playerIndex, int cardIndex)
-  + int getHandSize(int playerIndex)
-  + CardType getDeckCardType(int deckIndex)
-  + boolean getIsReversed()
-  # void setCurrentPlayerTurn(int turn)
-  - boolean matchingGameType(GameType gameType)
-  - boolean checkCardOutOfBoundsIndexed(int cardIndex, int playerIndex)
-  - boolean checkUserOutOfBounds(int userIndex)
-  - boolean checkDeckHasOneCardOrLess()
-  - boolean checkPlayerHandEmpty(Player player)
-  - boolean checkInvalidNumberOfPlayers(int numPlayers)
-  - boolean hasZeroPlayers()
-  - boolean checkIfNumberOfTurnsOutOfBounds()
-  - boolean checkIfNumberOfTurnsIsZero()
-  + void setTurnToTargetedIndexIfAttackOccurred()
-  + int getTurnCountOfPlayer(int playerIndex)
-  + boolean getAttacked()
-  + int getAttackCounter()
-  + int getNumberOfAttacks()
-  ~ void setNumberOfAttacks(int numberOfAttacks)
-  ~ void setAttacked(boolean attacked)
-}
-
-enum GameType {
-  NONE
-  EXPLODING_KITTENS
-  STREAKING_KITTENS
-  IMPLODING_KITTENS
-}
-
-class Instantiator {
-  + Card createCard(CardType cardType)
-  + Random createRandom()
-  + ArrayList<Card> createCardList()
-}
-
-class Player {
-  - int playerID
-  - List<Card> hand
-  - boolean isDead
-  - Random rand
-  - boolean isCursed
-  + Player(int playerID, Instantiator instantiator)
-  + int getPlayerID()
-  + void addDefuse(Card defuse)
-  + void addCardToHand(Card card)
-  + boolean hasCard(CardType cardType)
-  + int getHandSize()
-  + Card getCardAt(int index)
-  + int getIndexOfCard(CardType cardType)
-  + CardType removeCardFromHand(int index)
-  + void shuffleHand()
-  + int checkNumberOfCardsInHand(CardType cardType)
-  + boolean getIsDead()
-  + void setIsDead()
-  + boolean getIsCursed()
-  + void setCursed(boolean isCursed)
-}
-
-class GameUI {
-  - Game game
-  - ResourceBundle messages
-  + GameUI(Game game)
-  + void chooseLanguage()
-  + void chooseGame()
-  + void chooseNumberOfPlayers()
-  - int checkValidPlayerIndexInput()
-  - void startAttackFollowUp(boolean targeted)
-  - void swapTopAndBottom()
-  - void playAttack(boolean targeted)
-  - void playGarbageCollection()
-  - void printPlayerTurn()
-  - int playedCard()
-  - int playSpecialCombo()
-  - void playNope(int playerIndex)
-  - boolean checkAllPlayersForNope(int playerIndex)
-  - boolean playExplodingKitten(int playerIndex)
-  - boolean endTurn()
-  - boolean checkIfTheyEndTurn()
-  - void playCurseOfTheCatButt()
-  - void playSpecialComboTwoCards(CardType cardType)
-  - void drawFromTheBottom()
-  - void playMark()
-  - void playCatomicBomb()
-  - void playReverse()
-  - void playSpecialComboThreeCards(CardType cardType)
-  - void playSeeTheFuture()
-  - void playShuffle()
-  - void playSkip(boolean superSkip)
-  - void playAlterTheFuture()
-  - boolean checkIfCatCard(CardType cardType)
-  - int checkNumberOfFeralCats(int playerIndex)
-  - void promptCursedMessage()
-  - boolean checkCardIfInvalid(Card card)
-  - boolean playImplodingKitten(Card card)
-  + void startTurn()
-  + void endGame()
-  + boolean checkIfGameOver()
-  - boolean checkUserWithinBounds(int userIndex)
-  - boolean checkUserOutOfBounds(int userIndex)
-  - boolean checkIfPlayerIsAlive(int userIndex)
-  - boolean hasCard(int userIndex, CardType cardType)
-  - boolean hasCardDirect(Player player, CardType cardType)
-  - boolean checkCardWithinBounds(int cardIndex, Player player)
-  - boolean checkCardWithinBoundsIndexed(int cardIndex, int playerIndex)
-  - boolean checkMatchingCardType(CardType cardType, CardType cardTypeTwo)
-  - boolean checkIfPlayerIsCursed(Player player)
-  - boolean checkReversed()
-  - int getHandSize(int playerIndex)
-  - boolean checkIfCardMarked(int playerIndex, int cardIndex)
-  - int getNumberOfPlayers()
-  - boolean checkExplodingKitten(int playerIndex)
-  - boolean checkIfNumberOfTurnsGreaterThanZero()
-  - boolean checkIfNumberOfTurnsIsZero()
-  - boolean checkIfCurrentPlayerTurn(int playerIndex)
-  - int getDeckSize()
-  - boolean matchingGameType(GameType gameType)
-  - boolean checkFeralCat(int numberOfFeralCatsToPlay, int numberOfFeralCats, int numberOfCatType, int threshold)
-  - boolean checkIfDifferentCardType(CardType cardType, CardType cardTypeTwo)
-  - boolean checkAllPlayersNope()
-  - boolean checkNumberOfCards(Player player, CardType cardtype, int threshold)
-  - String getLocalizedCardType(CardType cardType)
-  - boolean checkNegativeIndexDeck(int indexToInsert)
-  - boolean checkIfGreaterThanMaxIndexDeck(int indexToInsert)
-}
-
-class Main {
-  + {static} void main(String[] args)
+  class Instantiator {
+    + Card createCard(CardType cardType)
+    + Random createRandom()
+    + ArrayList<Card> createCardList()
+  }
 }
 
 Card --> CardType
