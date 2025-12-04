@@ -1,71 +1,33 @@
 @startuml ThreeLayerArchitecture
 
 package "Presentation Layer" {
-  class GameUI {
-    - Game game
-    - ResourceBundle messages
-    + GameUI(Game game)
+  interface GameView {
     + void chooseLanguage()
-    + void chooseGame()
-    + void chooseNumberOfPlayers()
-    - int checkValidPlayerIndexInput()
-    - void startAttackFollowUp(boolean targeted)
-    - void swapTopAndBottom()
-    - void playAttack(boolean targeted)
-    - void playGarbageCollection()
-    - void printPlayerTurn()
-    - int playedCard()
-    - int playSpecialCombo()
-    - void playNope(int playerIndex)
-    - boolean checkAllPlayersForNope(int playerIndex)
-    - boolean playExplodingKitten(int playerIndex)
-    - boolean endTurn()
-    - boolean checkIfTheyEndTurn()
-    - void playCurseOfTheCatButt()
-    - void playSpecialComboTwoCards(CardType cardType)
-    - void drawFromTheBottom()
-    - void playMark()
-    - void playCatomicBomb()
-    - void playReverse()
-    - void playSpecialComboThreeCards(CardType cardType)
-    - void playSeeTheFuture()
-    - void playShuffle()
-    - void playSkip(boolean superSkip)
-    - void playAlterTheFuture()
-    - boolean checkIfCatCard(CardType cardType)
-    - int checkNumberOfFeralCats(int playerIndex)
-    - void promptCursedMessage()
-    - boolean checkCardIfInvalid(Card card)
-    - boolean playImplodingKitten(Card card)
-    + void startTurn()
-    + void endGame()
-    + boolean checkIfGameOver()
-    - boolean checkUserWithinBounds(int userIndex)
-    - boolean checkUserOutOfBounds(int userIndex)
-    - boolean checkIfPlayerIsAlive(int userIndex)
-    - boolean hasCard(int userIndex, CardType cardType)
-    - boolean hasCardDirect(Player player, CardType cardType)
-    - boolean checkCardWithinBounds(int cardIndex, Player player)
-    - boolean checkCardWithinBoundsIndexed(int cardIndex, int playerIndex)
-    - boolean checkMatchingCardType(CardType cardType, CardType cardTypeTwo)
-    - boolean checkIfPlayerIsCursed(Player player)
-    - boolean checkReversed()
-    - int getHandSize(int playerIndex)
-    - boolean checkIfCardMarked(int playerIndex, int cardIndex)
-    - int getNumberOfPlayers()
-    - boolean checkExplodingKitten(int playerIndex)
-    - boolean checkIfNumberOfTurnsGreaterThanZero()
-    - boolean checkIfNumberOfTurnsIsZero()
-    - boolean checkIfCurrentPlayerTurn(int playerIndex)
-    - int getDeckSize()
-    - boolean matchingGameType(GameType gameType)
-    - boolean checkFeralCat(int numberOfFeralCatsToPlay, int numberOfFeralCats, int numberOfCatType, int threshold)
-    - boolean checkIfDifferentCardType(CardType cardType, CardType cardTypeTwo)
-    - boolean checkAllPlayersNope()
-    - boolean checkNumberOfCards(Player player, CardType cardtype, int threshold)
-    - String getLocalizedCardType(CardType cardType)
-    - boolean checkNegativeIndexDeck(int indexToInsert)
-    - boolean checkIfGreaterThanMaxIndexDeck(int indexToInsert)
+    + void showMessage(String messageKey, Object... args)
+    + void displayGameState(GameStateDto state)
+    + PlayerAction promptAction(List<PlayerAction> allowedActions)
+  }
+
+  class GameUI implements GameView {
+    - ResourceBundle messages
+    - Scanner scanner
+    - Locale locale
+    - MessageFormat messageFormatter
+    + GameUI(ResourceBundle messages, Scanner scanner, Locale locale)
+    + void chooseLanguage()
+    + void showMessage(String messageKey, Object... args)
+    + void displayGameState(GameStateDto state)
+    + PlayerAction promptAction(List<PlayerAction> allowedActions)
+  }
+
+  class GameController {
+    - GameUseCase gameService
+    - GameView view
+    - GameStateDto currentState
+    + GameController(GameUseCase gameService, GameView view)
+    + void start()
+    - void handlePlayerAction(PlayerAction action)
+    - void renderState(GameStateDto state)
   }
 
   class Main {
@@ -120,6 +82,61 @@ package "Domain Layer" {
     EXPLODING_KITTENS
     STREAKING_KITTENS
     IMPLODING_KITTENS
+  }
+
+  enum ActionType {
+    CONFIGURE_GAME
+    DRAW
+    PLAY_CARD
+    DEFUSE
+    SKIP
+    END_TURN
+  }
+
+  class PlayerAction {
+    - ActionType actionType
+    - int actingPlayerIndex
+    - Map<String, Object> metadata
+    + PlayerAction(ActionType actionType, int actingPlayerIndex, Map<String, Object> metadata)
+    + ActionType getActionType()
+    + int getActingPlayerIndex()
+    + Map<String, Object> getMetadata()
+  }
+
+  class GameConfig {
+    - int numberOfPlayers
+    - GameType gameType
+    - Random rand
+    - Instantiator instantiator
+    + GameConfig(int numberOfPlayers, GameType gameType, Random rand, Instantiator instantiator)
+    + int getNumberOfPlayers()
+    + GameType getGameType()
+    + Random getRandom()
+    + Instantiator getInstantiator()
+  }
+
+  class PlayerPublicInfo {
+    - int playerID
+    - int handSize
+    - boolean isCursed
+    - boolean isDead
+    + PlayerPublicInfo(int playerID, int handSize, boolean isCursed, boolean isDead)
+    + int getPlayerID()
+    + int getHandSize()
+    + boolean getIsCursed()
+    + boolean getIsDead()
+  }
+
+  class GameStateDto {
+    - List<PlayerPublicInfo> players
+    - int deckSize
+    - int currentPlayerTurn
+    - boolean attacked
+    + GameStateDto(List<PlayerPublicInfo> players, int deckSize, int currentPlayerTurn, boolean attacked)
+    + List<PlayerPublicInfo> getPlayers()
+    + int getDeckSize()
+    + int getCurrentPlayerTurn()
+    + boolean getAttacked()
   }
 
   class Deck {
@@ -254,6 +271,34 @@ package "Domain Layer" {
     ~ void setNumberOfAttacks(int numberOfAttacks)
     ~ void setAttacked(boolean attacked)
   }
+
+  interface GameUseCase {
+    + GameStateDto startGame(GameConfig config)
+    + GameStateDto execute(PlayerAction action)
+    + boolean isGameOver()
+  }
+
+  class GameApplicationService implements GameUseCase {
+    - GameFactory gameFactory
+    - GameRepository gameRepository
+    + GameApplicationService(GameFactory gameFactory, GameRepository gameRepository)
+    + GameStateDto startGame(GameConfig config)
+    + GameStateDto execute(PlayerAction action)
+    + boolean isGameOver()
+    - GameStateDto mapToDto(Game game)
+  }
+
+  class GameFactory {
+    - Instantiator instantiator
+    + GameFactory(Instantiator instantiator)
+    + Game create(GameConfig config)
+  }
+
+  interface GameRepository {
+    + void save(Game game)
+    + Game get()
+    + boolean exists()
+  }
 }
 
 package "Data Source Layer" {
@@ -262,55 +307,87 @@ package "Data Source Layer" {
     + Random createRandom()
     + ArrayList<Card> createCardList()
   }
+
+  class InMemoryGameRepository implements GameRepository {
+    - Game currentGame
+    + InMemoryGameRepository()
+    + void save(Game game)
+    + Game get()
+    + boolean exists()
+  }
 }
 
 Card --> CardType
 Deck --> GameType
 Deck --> Card
 Deck --> Instantiator
+Deck ..> CardType
+Deck ..> Random
+
 Game --> GameType
 Game --> Deck
 Game --> Player
-Player --> Card
-Player --> Instantiator
-GameUI --> Game
-
 Game ..> CardType
 Game ..> Card
 Game ..> Random
 Game ..> Instantiator
 
-Deck ..> CardType
-Deck ..> Random
-
-CardType ..> GameType
-
-Instantiator ..> Card
-Instantiator ..> CardType
-Instantiator ..> Random
-
+Player --> Card
+Player --> Instantiator
 Player ..> CardType
 Player ..> Random
 Player ..> ArrayList
 
-GameUI ..> CardType
-GameUI ..> Player
+PlayerAction --> ActionType
+PlayerAction ..> Map
+GameConfig --> GameType
+GameConfig --> Instantiator
+GameConfig --> Random
+GameStateDto --> PlayerPublicInfo
+GameStateDto ..> List
+
+GameApplicationService --> GameFactory
+GameApplicationService --> GameRepository
+GameApplicationService --> Game
+GameApplicationService ..> GameStateDto
+GameApplicationService ..> PlayerAction
+GameApplicationService ..> GameConfig
+
+GameFactory --> Instantiator
+GameFactory --> Game
+
+GameRepository ..> Game
+InMemoryGameRepository --> Game
+
+GameUseCase ..> GameStateDto
+GameUseCase ..> GameConfig
+GameUseCase ..> PlayerAction
+
+GameController --> GameUseCase
+GameController --> GameView
+GameController ..> PlayerAction
+GameController ..> GameStateDto
+
+GameView ..> GameStateDto
+GameView ..> PlayerAction
+GameView ..> List
+
 GameUI ..> ResourceBundle
 GameUI ..> Scanner
 GameUI ..> Locale
 GameUI ..> MessageFormat
-GameUI ..> StandardCharsets
-GameUI ..> GameType
+GameUI ..> List
+GameUI ..> PlayerAction
+GameUI ..> GameStateDto
 
 Main ..> Instantiator
-Main ..> Deck
-Main ..> GameType
-Main ..> Player
-Main ..> Game
+Main ..> GameFactory
+Main ..> InMemoryGameRepository
+Main ..> GameApplicationService
+Main ..> GameController
 Main ..> GameUI
-Main ..> Card
-Main ..> CardType
-Main ..> ArrayList
+Main ..> GameUseCase
+Main ..> GameConfig
 Main ..> SecureRandom
 
 @enduml
