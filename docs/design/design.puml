@@ -322,29 +322,22 @@ Deck --> GameType
 Deck --> Card
 Deck --> Instantiator
 Deck ..> CardType
-Deck ..> Random
 
 Game --> GameType
 Game --> Deck
 Game --> Player
 Game ..> CardType
 Game ..> Card
-Game ..> Random
 Game ..> Instantiator
 
 Player --> Card
 Player --> Instantiator
 Player ..> CardType
-Player ..> Random
-Player ..> ArrayList
 
 PlayerAction --> ActionType
-PlayerAction ..> Map
 GameConfig --> GameType
 GameConfig --> Instantiator
-GameConfig --> Random
 GameStateDto --> PlayerPublicInfo
-GameStateDto ..> List
 
 GameApplicationService --> GameFactory
 GameApplicationService --> GameRepository
@@ -370,13 +363,7 @@ GameController ..> GameStateDto
 
 GameView ..> GameStateDto
 GameView ..> PlayerAction
-GameView ..> List
 
-GameUI ..> ResourceBundle
-GameUI ..> Scanner
-GameUI ..> Locale
-GameUI ..> MessageFormat
-GameUI ..> List
 GameUI ..> PlayerAction
 GameUI ..> GameStateDto
 
@@ -388,6 +375,5 @@ Main ..> GameController
 Main ..> GameUI
 Main ..> GameUseCase
 Main ..> GameConfig
-Main ..> SecureRandom
 
 @enduml
