@@ -13,20 +13,24 @@ Yunfei Ge
 This project follows a **Three-Layer Architecture** to ensure a clean separation of concerns and improve maintainability.
 
 ### 1. Presentation Layer (`ui` package)
-- **Responsibility**: Handles all user interactions and input/output operations.
-- **Key Components**: 
-  - `GameUI`: Manages the console interface, user prompts, and localized messages.
-  - `Main`: The entry point of the application.
-
-### 2. Domain Layer (`domain.game` package)
-- **Responsibility**: Encapsulates the core business logic, state, and rules of the game.
+- **Responsibility**: Handles user interactions and renders game state without manipulating domain objects directly.
 - **Key Components**:
-  - `Game`: Controls the game flow, turn management, and player actions.
-  - `Player`: Represents a game participant and manages their hand.
-  - `Deck`: Manages the collection of cards. **Note**: While `Deck` stores data, it is placed in the Domain Layer because it contains essential game logic (e.g., `shuffleDeck`, `initializeDeck`, bomb insertion rules).
-  - `Card` / `CardType`: Defines the fundamental entities of the game.
+  - `GameView`: Interface describing how the UI presents information and collects `PlayerAction`.
+  - `GameUI`: Console implementation of `GameView`, responsible for prompts, localization (`ResourceBundle`, `MessageFormat`), and formatting.
+  - `GameController`: Coordinates the overall loop—pulls `PlayerAction` from the view, invokes the application layer, then pushes `GameStateDto` back to the view.
+  - `Main`: Composition root that wires repositories, services, controller, and UI together.
+
+### 2. Application & Domain Layer (`domain.game` package)
+- **Responsibility**: Encapsulates business rules/state and exposes use-case–level APIs to the presentation layer.
+- **Key Components**:
+  - `GameUseCase`: Boundary interface consumed by `GameController`.
+  - `GameApplicationService`: Implements `GameUseCase`, orchestrates domain model operations, and maps them to DTOs.
+  - DTOs / boundary models: `GameStateDto`, `PlayerPublicInfo`, `PlayerAction`, `GameConfig`, `ActionType`.
+  - Domain model: `Game`, `Player`, `Deck`, `Card`, `CardType`, etc., which contain the actual rules (turn management, attacks, card effects).
 
 ### 3. Data Source Layer (`datasource` package)
-- **Responsibility**: Provides infrastructure for object creation and data sourcing.
+- **Responsibility**: Provides persistence/object-creation infrastructure while staying behind interfaces.
 - **Key Components**:
-  - `Instantiator`: A factory-like class responsible for creating object instances (like Cards) and providing randomness (`SecureRandom`). This isolates the "source" of objects from the logic that uses them.
+  - `GameRepository`: Abstraction for saving/loading the current `Game`.
+  - `InMemoryGameRepository`: Default implementation; can be replaced by other storage mechanisms without touching upper layers.
+  - `Instantiator`: Factory-style helper that builds domain objects and supplies randomness (`SecureRandom`), keeping creation logic out of the domain.
