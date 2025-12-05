@@ -1,6 +1,5 @@
 package domain.game;
 
-import datasource.Instantiator;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 

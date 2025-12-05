@@ -1,6 +1,5 @@
 package domain.game;
 
-import datasource.Instantiator;
 import java.util.List;
 import java.util.Random;
 

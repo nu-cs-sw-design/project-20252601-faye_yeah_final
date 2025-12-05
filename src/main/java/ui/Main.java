@@ -1,6 +1,6 @@
 package ui;
 
-import datasource.Instantiator;
+import domain.game.Instantiator;
 import domain.game.Card;
 import domain.game.CardType;
 import domain.game.Deck;
