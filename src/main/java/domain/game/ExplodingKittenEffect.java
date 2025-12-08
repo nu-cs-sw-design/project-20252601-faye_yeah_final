@@ -1,27 +1,25 @@
 package domain.game;
 
 public class ExplodingKittenEffect implements CardEffect {
-	public boolean canExecute(EffectContext context) {
+	public boolean canExecute(Game game, Player player) {
 		return true;
 	}
 
-	public void execute(EffectContext context) {
-		Game game = context.getGame();
+	public void execute(Game game, Player player, InputProvider input, OutputProvider output) {
 		int playerIndex = game.getPlayerTurn();
 		if (!game.checkIfPlayerHasCard(playerIndex, CardType.DEFUSE)) {
 			game.playExplodingKitten(playerIndex);
-			context.getOutput().display("Player " + playerIndex + " exploded.");
+			output.display("Player " + playerIndex + " exploded.");
 			return;
 		}
 		int deckSize = game.getDeckSize();
-		int index = context.getInput().readInteger(
+		int index = input.readInteger(
 				"Choose position to insert Exploding Kitten (0-" + deckSize + "): ",
 				0,
 				deckSize
 		);
 		game.playDefuse(index, playerIndex);
-		context.getOutput().display("Player " + playerIndex + " defused the Exploding Kitten.");
+		output.display("Player " + playerIndex + " defused the Exploding Kitten.");
 	}
 }
-
 

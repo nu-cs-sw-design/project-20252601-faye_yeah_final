@@ -11,15 +11,6 @@ import java.util.ResourceBundle;
 import java.util.Scanner;
 import java.nio.charset.StandardCharsets;
 
-import domain.game.CardEffect;
-import domain.game.DrawFromBottomEffect;
-import domain.game.EffectContext;
-import domain.game.ExplodingKittenEffect;
-import domain.game.InputProvider;
-import domain.game.NopeInterceptor;
-import domain.game.OutputProvider;
-import domain.game.ShuffleEffect;
-
 
 public class GameUI {
 	private Game game;
@@ -586,11 +577,11 @@ public class GameUI {
 	}
 
 	private boolean playExplodingKitten(int playerIndex) {
-		EffectContext context = new EffectContext(game, inputProvider, outputProvider);
 		CardEffect effect = new ExplodingKittenEffect();
-		if (effect.canExecute(context)) {
-			effect.execute(context);
-					}
+		Player player = game.getPlayerAtIndex(playerIndex);
+		if (effect.canExecute(game, player)) {
+			effect.execute(game, player, inputProvider, outputProvider);
+		}
 		return !game.getPlayerAtIndex(playerIndex).getIsDead();
 	}
 
@@ -815,10 +806,10 @@ public class GameUI {
 	}
 
 	private void drawFromTheBottom() {
-		EffectContext context = new EffectContext(game, inputProvider, outputProvider);
 		CardEffect effect = new DrawFromBottomEffect();
-		if (effect.canExecute(context)) {
-			effect.execute(context);
+		Player player = game.getPlayerAtIndex(game.getPlayerTurn());
+		if (effect.canExecute(game, player)) {
+			effect.execute(game, player, inputProvider, outputProvider);
 		}
 	}
 
@@ -1026,12 +1017,11 @@ public class GameUI {
 	}
 
 	private void playShuffle() {
-		EffectContext context = new EffectContext(game, inputProvider, outputProvider);
-		CardEffect base = new ShuffleEffect();
-		CardEffect effect = new NopeInterceptor(base);
-		if (effect.canExecute(context)) {
-			effect.execute(context);
-			}
+		CardEffect effect = new ShuffleEffect();
+		Player player = game.getPlayerAtIndex(game.getPlayerTurn());
+		if (effect.canExecute(game, player)) {
+			effect.execute(game, player, inputProvider, outputProvider);
+		}
 	}
 
 	private void playSkip(boolean superSkip) {

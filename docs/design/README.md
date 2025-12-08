@@ -1,64 +1,361 @@
 ## Software Design Document
 
-本设计文档包含两部分：给定版本（原始结构，`given.puml`）与重构版本（仅聚焦四张重点卡牌，`refactor.puml`）。PlantUML 类图用于支撑文字说明。
+This document compares the **original design** (`given.puml`) with the **refactored design** (`refactor.puml`), with a particular focus on four key cards in *Exploding Kittens*:
 
-## 1. 初始设计（`given.puml`）
+* Exploding Kitten
+* Nope
+* Shuffle
+* Draw From Bottom
 
-- **结构特点**
-  - `Card` 只保存 `CardType` 与标记状态，不包含任何行为。
-  - `Game` 承担大部分规则逻辑：爆炸判定、洗牌、攻击队列、抽底、Mark 等。
-  - `GameUI` 同时负责用户交互与业务决策，例如：
-    - 根据 `CardType` 使用 `switch`/`if-else` 决定每张牌的效果。
-    - 在 UI 层实现 Nope 链、Exploding Kitten/Defuse 流程以及 Shuffle 次数输入。
-- **问题**
-  - **高耦合**：UI 与规则强绑定，难以替换输入输出方式，也难以单元测试。
-  - **可维护性差**：新增一张牌或修改一张牌的规则，需要同时修改 `Game` 和 `GameUI`，容易遗漏 Nope 等边界情况。
-  - **不符合单一职责原则**：`GameUI` 近似 God-Class。
+The PlantUML class diagrams (`given.puml` and `refactor.puml`) are used to support the explanations below.
 
-## 2. 重构设计（`refactor.puml`）
+---
 
-> 目标：围绕 Exploding Kitten、Nope、Shuffle 与 Draw From Bottom，引入以“卡牌效果”为中心的架构，使规则可以在不修改 UI 的前提下扩展与维护。
+## 1. Baseline Design (`given.puml`)
 
-- **核心元素**
-  - `Card`
-    - 持有两个策略引用：`CardEffect useEffect` 与 `DrawTrigger drawTrigger`。
-    - 提供 `executeUseEffect(game, player, input, output)` 与 `executeDrawTrigger(game, player, input, output)`，将行为“挂”在卡牌上。
-  - `CardEffect`
-    - 接口：`execute(game, player, input, output)` / `canExecute(game, player)`。
-    - 具体实现包含 `ShuffleEffect`、`DrawFromBottomEffect`、`ExplodingKittenEffect` 等。
-  - `DrawTrigger`
-    - 用于处理“抽到一张牌会发生什么”，例如 `ExplodingKittenTrigger`、`NormalDrawTrigger`。
-  - `NOPEInterceptor`（Decorator）
-    - 实现 `CardEffect`，内部组合一个 `wrappedEffect`。
-    - 通过额外接口 `NopableEffect`（继承自 `CardEffect` 的标记接口）标记哪些效果可以被 Nope，例如 `AttackEffect`。
-    - 仅当被装饰的效果实现了 `NopableEffect` 时，才在执行前检查其他玩家是否要打出 Nope。
-  - `CardEffectFactory` / `CardFactory`
-    - 负责将 `CardType` 映射到对应的 `CardEffect` 与 `DrawTrigger`，并在需要时用 `NOPEInterceptor` 包装（例如 Attack，可以被 Nope；Shuffle 是否被 Nope 由工厂策略决定，而不是硬编码在 UI）。
-  - `InputProvider` / `OutputProvider`
-    - 抽象输入输出（例如 `ConsoleInput`、`ConsoleOutput`），使 `CardEffect` 可以在不依赖具体 UI 技术的情况下获取玩家选择或输出文本。
-  - `ShuffleStrategy`
-    - 封装不同洗牌算法（目前关注 Fisher-Yates 实现），`ShuffleEffect` 组合该策略调用。
+### 1.1 Structural Characteristics
 
-## 3. 主要变更列表与变更动机
+* **Card**
 
-| 变更编号 | 变更内容 | 变更动机（为什么需要） |
-| --- | --- | --- |
-| C1 | `Card` 从“纯数据类”扩展为持有 `useEffect` 与 `drawTrigger`，增加 `executeUseEffect/executeDrawTrigger` | 让“牌的行为”与“牌的数据”聚合在同一对象中，避免 `GameUI` 依据 `CardType` 写长 `switch`，符合面向对象的**封装**与**多态** |
-| C2 | 引入 `CardEffect` 接口及其实现（`ShuffleEffect`、`DrawFromBottomEffect`、`ExplodingKittenEffect` 等） | 使用**策略模式**封装每张牌的播放规则，便于对单张牌做单元测试或在不影响其他牌的情况下修改行为 |
-| C3 | 引入 `DrawTrigger`（如 `ExplodingKittenTrigger`、`NormalDrawTrigger`）处理“抽到牌”的效果 | 将“抽牌后发生什么”从 `GameUI.endTurn` 中抽离，减少重复的炸弹/拆除逻辑，便于未来增加更多“抽牌触发型”卡牌 |
-| C4 | 引入 `NOPEInterceptor` 装饰器，并增加 `NopableEffect`（继承 `CardEffect` 的标记接口），仅让例如 `AttackEffect` 这类效果实现该接口 | 使用**装饰器模式**集中处理 Nope：只有被标记为 `NopableEffect` 的效果才可能被 Nope 取消，既满足规则（不是所有牌都能 Nope），又通过类型系统表达“可 Nope 的效果是一类特殊的 `CardEffect`”，避免在 UI 中到处写“检查有没有 Nope” |
-| C5 | `CardEffectFactory` / `CardFactory` 负责创建四张重点卡牌所需的效果和触发器，并在需要时为其套上 `NOPEInterceptor` | 通过集中工厂减少 `new` 与 `if-else` 分散在代码各处的问题，未来新增牌或调整“哪些牌可以 Nope”时只需修改工厂，符合**开闭原则** |
-| C6 | 抽象 `InputProvider` / `OutputProvider` 并由效果类依赖它们，而不是直接使用 `Scanner`/`System.out` | 解绑业务逻辑与具体控制台实现，使得在图形界面或自动化测试环境下可以替换输入输出实现，提高可测试性与可移植性 |
+  * Stores only `CardType` and some flags (e.g., marked state).
+  * Does **not** own any behavior.
 
-这些变更共同的目标，是让以下四张卡牌在设计上更加**功能完备（functional）**、**易扩展（flexible）** 与 **易维护（maintainable）**：
+* **Game**
 
-- Exploding Kitten：通过专用效果/触发器和工厂集中管理炸弹插入与拆除逻辑。
-- Nope：通过 `NOPEInterceptor` 明确建模为 Decorator，只包装可 Nope 的效果（例如 Attack）。
-- Shuffle：通过 `ShuffleEffect + ShuffleStrategy` 解耦洗牌规则与输入输出。
-- Draw From Bottom：通过 `DrawFromBottomEffect` 将“从底部抽一张牌并加入手牌”的规则从 UI 中抽离出来。
+  * Contains most of the core rules:
 
-## 4. 设计一致性检查
+    * Explosion resolution.
+    * Shuffling logic.
+    * Attack queue.
+    * Draw-from-bottom.
+    * Marking cards, etc.
 
-- `given.puml` 忠实反映原始代码结构，可作为重构前的对照基线。
-- `refactor.puml` 聚焦四张目标卡牌的行为重构，并与上述 C1–C6 变更逐项对应。
-- 如果后续在实现中新增新的效果类或改变哪些牌可以被 Nope，需要同时更新 `refactor.puml` 与本 README 的“主要变更”部分，以保持文档与代码的一致。 
+* **GameUI**
+
+  * Responsible for both **user interaction** and **game logic decisions**, including:
+
+    * Using `switch` / `if-else` on `CardType` to determine what each card does.
+    * Implementing the Nope chain.
+    * Handling Exploding Kitten / Defuse resolution.
+    * Asking for shuffle times and executing the shuffle.
+
+### 1.2 Problems in the Original Design
+
+* **High coupling between UI and rules**
+
+  * `GameUI` is tightly coupled to game rules and card types.
+  * Hard to replace the UI (e.g., switch to GUI or network) without touching rules.
+  * Hard to unit-test card behavior without going through the console UI.
+
+* **Poor maintainability**
+
+  * Adding or changing a card often requires changes in **both** `Game` and `GameUI`.
+  * Nope-related edge cases are easy to miss because they are scattered in UI logic.
+
+* **Violation of Single Responsibility Principle**
+
+  * `GameUI` behaves like a God Class:
+
+    * It knows about user interaction, game flow, and detailed card rules.
+
+---
+
+## 2. Refactored Design (`refactor.puml`)
+
+> **Goal:** For Exploding Kitten, Nope, Shuffle, and Draw From Bottom, introduce a **card-effect-centric architecture**, where each card owns its behavior through composition. Game rules should be extendable and maintainable **without modifying the UI layer**.
+
+### 2.1 Core Elements
+
+* **Card**
+
+  * Holds two strategy-like collaborators:
+
+    * `CardEffect useEffect`
+    * `DrawTrigger drawTrigger`
+  * Provides:
+
+    * `executeUseEffect(game, player, input, output)`
+    * `executeDrawTrigger(game, player, input, output)`
+  * Behavior is now “attached” to the card itself instead of being handled in `GameUI`.
+
+* **CardEffect**
+
+  * Interface:
+
+    * `execute(game, player, input, output)`
+    * `canExecute(game, player)`
+  * Concrete implementations include:
+
+    * `ShuffleEffect`
+    * `DrawFromBottomEffect`
+    * `ExplodingKittenEffect`
+    * `AttackEffect`
+    * etc.
+
+* **DrawTrigger**
+
+  * Models “what happens when this card is drawn”.
+  * Examples:
+
+    * `ExplodingKittenTrigger`
+    * `NormalDrawTrigger`
+    * `StreakingKittenTrigger`
+
+* **NOPEInterceptor (Decorator)**
+
+  * Implements `CardEffect` and wraps another effect.
+  * Wraps only effects that implement `NopableEffect`:
+
+    * `NopableEffect` is a **marker interface extending `CardEffect`**, used for effects that can be canceled by Nope (e.g., `AttackEffect`).
+  * Before executing the wrapped effect, it checks whether other players want to play Nope and resolves the Nope chain.
+
+* **CardEffectFactory / CardFactory**
+
+  * Map `CardType` to the correct:
+
+    * `CardEffect useEffect`
+    * `DrawTrigger`
+  * Decide whether a given effect should be wrapped in `NOPEInterceptor` (e.g., Attack can be Noped, while some other effects might not be).
+  * Centralize the construction logic for the four key cards.
+
+* **InputProvider / OutputProvider**
+
+  * Abstract away input and output:
+
+    * e.g., `ConsoleInput`, `ConsoleOutput`.
+  * `CardEffect` and `DrawTrigger` depend on these abstractions instead of directly using `Scanner` / `System.out`.
+
+* **ShuffleStrategy**
+
+  * Encapsulates shuffling algorithms (e.g., Fisher–Yates).
+  * `ShuffleEffect` composes a `ShuffleStrategy` to perform the actual shuffle.
+
+---
+
+## 3. Major Design Changes and Rationale
+
+Below is the **list of major changes** and an explanation of **why each change was needed** from an OOP perspective.
+
+---
+
+### **C1 – Card now owns behavior via `CardEffect` and `DrawTrigger`**
+
+**Change**
+
+* In the original design, `Card` was a pure data holder (only type + flags).
+* In the refactored design, `Card` holds:
+
+  * `CardEffect useEffect`
+  * `DrawTrigger drawTrigger`
+* `Card` exposes:
+
+  * `executeUseEffect(...)`
+  * `executeDrawTrigger(...)`
+
+**Why this was needed**
+
+* Moves from a **type-based, procedural switch** (in `GameUI`) to **object-based polymorphism**.
+* Encapsulates “what the card does” inside the card itself, following **Encapsulation** and **Single Responsibility Principle (SRP)**.
+* When adding a new card type, you simply:
+
+  * Implement a new `CardEffect` / `DrawTrigger`.
+  * Wire it in via `CardFactory`.
+* `GameUI` no longer needs a long `switch (cardType)` and is no longer responsible for rules logic.
+
+---
+
+### **C2 – Introduce `CardEffect` interface and concrete effect classes**
+
+**Change**
+
+* Extracted a dedicated interface:
+
+  ```java
+  interface CardEffect {
+      EffectResult execute(...);
+      boolean canExecute(...);
+  }
+  ```
+* Implementations:
+
+  * `ShuffleEffect`
+  * `DrawFromBottomEffect`
+  * `ExplodingKittenEffect`
+  * `AttackEffect`
+  * `SkipEffect`
+  * etc.
+
+**Why this was needed**
+
+* This is a classic **Strategy Pattern**:
+
+  * Each card effect is a separate class encapsulating one piece of behavior.
+* Benefits:
+
+  * Each effect can be **unit-tested independently**.
+  * You can change the behavior of one card without touching others (improves **Open/Closed Principle**).
+  * Clarifies responsibilities: `Game` coordinates the game; `CardEffect` knows how a card behaves.
+
+---
+
+### **C3 – Introduce `DrawTrigger` for draw-time effects**
+
+**Change**
+
+* Introduced `DrawTrigger` to model draw-time behavior, e.g.:
+
+  * `ExplodingKittenTrigger`
+  * `NormalDrawTrigger`
+  * (potentially) `ImplodingKittenTrigger`, etc.
+* `Card.executeDrawTrigger(...)` delegates to its `DrawTrigger`.
+
+**Why this was needed**
+
+* In the original design, draw-time effects were mixed into `Game` / `GameUI` flow logic.
+* By extracting `DrawTrigger`:
+
+  * The logic for “what happens when this card is drawn” is localized and reusable.
+  * It avoids duplicating explosion/defuse logic in multiple places (e.g., end-of-turn, draw step).
+  * Makes it easier to introduce new cards with custom draw-time behavior in the future.
+
+---
+
+### **C4 – Add `NOPEInterceptor` Decorator and `NopableEffect` marker interface**
+
+**Change**
+
+* Introduced:
+
+  ```java
+  interface NopableEffect extends CardEffect {
+      // Marker interface for effects that can be NOPE’d
+  }
+
+  class NOPEInterceptor implements CardEffect {
+      private final NopableEffect wrappedEffect;
+      ...
+  }
+  ```
+
+* Effects that can be canceled by Nope (e.g., `AttackEffect`) implement `NopableEffect`.
+
+* `NOPEInterceptor` wraps `NopableEffect` and:
+
+  * Before executing, asks other players if they want to play Nope.
+  * Resolves the Nope chain (possibly multiple NOPEs).
+  * Either cancels the original effect or lets it proceed.
+
+**Why this was needed**
+
+* In the original design, Nope resolution was deeply entangled with UI logic and card-specific code.
+
+* This change applies two OOP ideas:
+
+  1. **Decorator Pattern**
+
+     * `NOPEInterceptor` decorates normal effects with extra logic (Nope chain handling).
+     * This keeps the core effect behavior (e.g., Attack) clean and focused.
+
+  2. **Type-Safe Domain Modeling**
+
+     * Not all effects can be NOPE’d according to the game rules.
+     * By introducing `NopableEffect extends CardEffect`, the type system explicitly encodes:
+
+       > “Only some effects may be wrapped and canceled by Nope.”
+     * This avoids scattering `if (cardCanBeNoped)` booleans or magic conditions in the UI.
+     * It improves **Liskov Substitution Principle (LSP)** and keeps the design explicit and self-documenting.
+
+* Overall, this design centralizes Nope handling, removes Nope-specific logic from the UI, and makes the rules easier to reason about and extend.
+
+---
+
+### **C5 – Introduce `CardEffectFactory` and `CardFactory`**
+
+**Change**
+
+* Created:
+
+  * `CardEffectFactory` to map `CardType` to the appropriate `CardEffect` and (if applicable) wrap with `NOPEInterceptor`.
+  * `CardFactory` to construct fully initialized `Card` objects with the correct `useEffect` and `drawTrigger`.
+
+**Why this was needed**
+
+* Previously, card construction logic and effect wiring were scattered (often in `GameUI` or `Game`).
+* By centralizing this logic in factories:
+
+  * You reduce duplication of `new` expressions and `if-else` chains.
+  * Adding a new card type or changing whether a card is Nopable becomes a **local change** in the factory.
+  * This strongly supports the **Open/Closed Principle**:
+
+    * The rest of the system (Game/UI) does not need to change when new cards are added or existing card wiring is updated.
+
+---
+
+### **C6 – Abstract input/output via `InputProvider` and `OutputProvider`**
+
+**Change**
+
+* Introduced interfaces such as:
+
+  * `InputProvider`
+  * `OutputProvider`
+* `CardEffect`, `DrawTrigger`, and other rule classes depend on these interfaces instead of concrete console APIs.
+
+**Why this was needed**
+
+* In the original design, rule code directly used:
+
+  * `Scanner` for input.
+  * `System.out.println` for output.
+
+* That made the rules:
+
+  * Hard to test (no easy way to inject test inputs or capture outputs).
+  * Tied to a specific UI technology (console).
+
+* By introducing `InputProvider` / `OutputProvider`:
+
+  * You **decouple domain logic from presentation**.
+  * The same rules can be reused in:
+
+    * A console UI.
+    * A GUI.
+    * A networked or web-based UI.
+    * Automated tests.
+  * This follows the **Dependency Inversion Principle (DIP)**: high-level policy (game rules) should not depend on concrete I/O mechanisms.
+
+---
+
+### **C7 – Introduce `ShuffleStrategy` for pluggable shuffling algorithms**
+
+**Change**
+
+* Added a `ShuffleStrategy` abstraction.
+* `ShuffleEffect` composes a `ShuffleStrategy` and delegates the shuffle operation to it (e.g., Fisher–Yates implementation).
+
+**Why this was needed**
+
+* Shuffling used to be a concrete algorithm embedded directly in the game logic or UI.
+
+* Extracting it as a strategy:
+
+  * Allows swapping or comparing different shuffling algorithms.
+  * Supports easier testing (e.g., deterministic strategies for tests).
+  * Keeps `ShuffleEffect` focused on *when* to shuffle, not *how*.
+
+* This is another application of the **Strategy Pattern** and contributes to a cleaner separation of concerns.
+
+---
+
+## 4. Consistency Between Diagrams and Document
+
+* `given.puml` reflects the original, UI-centric design, where:
+
+  * `GameUI` contains both UI and rule logic.
+  * `Card` is a passive data holder.
+* `refactor.puml` captures the refactored, card-effect-centric architecture, and corresponds to changes **C1–C7** above.
+* When new effect classes are added or the set of Nopable cards changes, both:
+
+  * `refactor.puml`, and
+  * This “Major Design Changes and Rationale” section
+    should be updated to ensure the documentation remains aligned with the code.

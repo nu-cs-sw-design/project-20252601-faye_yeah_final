@@ -1,17 +1,15 @@
 package domain.game;
 
 public class DrawFromBottomEffect implements CardEffect {
-	public boolean canExecute(EffectContext context) {
+	public boolean canExecute(Game game, Player player) {
 		return true;
 	}
 
-	public void execute(EffectContext context) {
-		Game game = context.getGame();
+	public void execute(Game game, Player player, InputProvider input, OutputProvider output) {
 		Card card = game.drawFromBottom();
 		game.addCardToHand(card);
 		String message = "Drew from the bottom: " + card.getCardType();
-		context.getOutput().display(message);
+		output.display(message);
 	}
 }
-
 

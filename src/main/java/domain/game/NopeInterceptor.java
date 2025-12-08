@@ -1,20 +1,17 @@
 package domain.game;
 
 public class NopeInterceptor implements CardEffect {
-	private final CardEffect wrapped;
+	private final NopableEffect wrapped;
 
-	public NopeInterceptor(CardEffect wrapped) {
+	public NopeInterceptor(NopableEffect wrapped) {
 		this.wrapped = wrapped;
 	}
 
-	public boolean canExecute(EffectContext context) {
-		return wrapped.canExecute(context);
+	public boolean canExecute(Game game, Player player) {
+		return wrapped.canExecute(game, player);
 	}
 
-	public void execute(EffectContext context) {
-		Game game = context.getGame();
-		InputProvider input = context.getInput();
-		OutputProvider output = context.getOutput();
+	public void execute(Game game, Player player, InputProvider input, OutputProvider output) {
 		int sourcePlayer = game.getPlayerTurn();
 		boolean cancelled = false;
 
@@ -38,11 +35,10 @@ public class NopeInterceptor implements CardEffect {
 		}
 
 		if (!cancelled) {
-			wrapped.execute(context);
+			wrapped.execute(game, player, input, output);
 		} else {
 			output.display("Action was cancelled by NOPE.");
 		}
 	}
 }
-
 

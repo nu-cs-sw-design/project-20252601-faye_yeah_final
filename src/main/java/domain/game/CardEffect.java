@@ -1,8 +1,7 @@
 package domain.game;
 
 public interface CardEffect {
-	boolean canExecute(EffectContext context);
-	void execute(EffectContext context);
+	boolean canExecute(Game game, Player player);
+	void execute(Game game, Player player, InputProvider input, OutputProvider output);
 }
-
 
