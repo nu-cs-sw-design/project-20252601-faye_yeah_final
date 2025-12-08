@@ -11,12 +11,25 @@ import java.util.ResourceBundle;
 import java.util.Scanner;
 import java.nio.charset.StandardCharsets;
 
+import domain.game.CardEffect;
+import domain.game.DrawFromBottomEffect;
+import domain.game.EffectContext;
+import domain.game.InputProvider;
+import domain.game.OutputProvider;
+import domain.game.ShuffleEffect;
+
 
 public class GameUI {
 	private Game game;
 	private ResourceBundle messages;
+	private final InputProvider inputProvider;
+	private final OutputProvider outputProvider;
 
-	public GameUI (Game game) { this.game = game; }
+	public GameUI (Game game) {
+		this.game = game;
+		this.inputProvider = new ConsoleInput();
+		this.outputProvider = new ConsoleOutput();
+	}
 
 	public void chooseLanguage() {
 		Scanner scanner = new Scanner(System.in, StandardCharsets.UTF_8);
@@ -901,20 +914,11 @@ public class GameUI {
 	}
 
 	private void drawFromTheBottom() {
-		final String drewFromBottomMessage = messages.getString("drewFromBottom");
-		final String cardWasMessage = messages.getString("cardWas");
-
-		System.out.println(drewFromBottomMessage);
-		game.addCardToHand(game.drawFromBottom());
-
-		final String cardType =
-				game.getCardType(game.getPlayerTurn(),
-					game.getHandSize(game.
-							getPlayerTurn()) - 1)
-				.toString();
-
-		final String formattedCardMessage = MessageFormat.format(cardWasMessage, cardType);
-		System.out.println(formattedCardMessage);
+		EffectContext context = new EffectContext(game, inputProvider, outputProvider);
+		CardEffect effect = new DrawFromBottomEffect();
+		if (effect.canExecute(context)) {
+			effect.execute(context);
+		}
 	}
 
 	private void playMark() {
@@ -1121,36 +1125,11 @@ public class GameUI {
 	}
 
 	private void playShuffle() {
-		final String decidedShuffle = messages.getString("decidedShuffle");
-		final String enterShuffleTimes = messages.getString("enterShuffleTimes");
-		final String enterPositiveInteger = messages.getString("enterPositiveInteger");
-		final String enterInteger = messages.getString("enterInteger");
-
-		System.out.println(decidedShuffle);
-
-		Scanner scanner = new Scanner(System.in, StandardCharsets.UTF_8);
-		int numberOfShuffle;
-		final int maxNumberOfShuffles = 100;
-		while (true) {
-			System.out.print(enterShuffleTimes);
-			try {
-				numberOfShuffle = scanner.nextInt();
-				if (numberOfShuffle > maxNumberOfShuffles) {
-					final String maxShuffleMessage =
-							messages.getString("maxShuffleMessage");
-					System.out.println(maxShuffleMessage);
-				}
-				else if (numberOfShuffle > 0) {
-					break;
-				} else {
-					System.out.println(enterPositiveInteger);
-				}
-			} catch (Exception e) {
-				System.out.println(enterInteger);
-				scanner.next();
-			}
+		EffectContext context = new EffectContext(game, inputProvider, outputProvider);
+		CardEffect effect = new ShuffleEffect();
+		if (effect.canExecute(context)) {
+			effect.execute(context);
 		}
-		game.playShuffle(numberOfShuffle);
 	}
 
 	private void playSkip(boolean superSkip) {
