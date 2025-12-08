@@ -14,7 +14,9 @@ import java.nio.charset.StandardCharsets;
 import domain.game.CardEffect;
 import domain.game.DrawFromBottomEffect;
 import domain.game.EffectContext;
+import domain.game.ExplodingKittenEffect;
 import domain.game.InputProvider;
+import domain.game.NopeInterceptor;
 import domain.game.OutputProvider;
 import domain.game.ShuffleEffect;
 
@@ -584,113 +586,12 @@ public class GameUI {
 	}
 
 	private boolean playExplodingKitten(int playerIndex) {
-		Scanner scanner = new Scanner(System.in, StandardCharsets.UTF_8);
-
-		final String explodingKittenMessage = messages.getString("explodingKittenMessage");
-		final String noDefuseCardMessage = messages.getString("noDefuseCardMessage");
-		final String youExplodedMessage = messages.getString("youExplodedMessage");
-		final String defusedMessage = messages.getString("defusedMessage");
-		final String whereToInsertMessage = messages.getString("whereToInsertMessage");
-		final String validRangeMessage = MessageFormat.format(
-		messages.getString("validRangeMessage"), game.getDeckSize());
-		final String invalidInputMessage = messages.getString("invalidInputMessage");
-		final String cursedMessage = messages.getString("cursedExplodingMessage");
-		final String notDefuseCardMessage = messages.getString("notDefuseCardMessage");
-		final String discardCardMessage = messages.getString("discardCardMessage");
-		final String reenterDefuseMessage = messages.getString("reenterDefuseMessage");
-
-		final String anotherExplodingKittenMessage =
-				messages.getString("anotherExplodingKittenMessage");
-		final String defusedFirstExplodingKitten =
-				messages.getString("defusedFirstExplodingKitten");
-		final String discardStreakingKittenMessage =
-				messages.getString("discardStreakingKittenMessage");
-
-		System.out.println(explodingKittenMessage);
-		if (checkExplodingKitten(playerIndex)) {
-			System.out.println(noDefuseCardMessage);
-			System.out.println(youExplodedMessage);
-			return false;
-		} else {
-			Player player = game.getPlayerAtIndex(playerIndex);
-			if (player.getIsCursed()) {
-				System.out.println(cursedMessage);
-
-				while (true) {
-					final String findDefuseCardMessage = MessageFormat.format(
-							messages.getString("findDefuseCardMessage")
-							, player.getHandSize() - 1);
-					System.out.println(findDefuseCardMessage);
-					String defuseString = scanner.nextLine();
-					try {
-					int defuseIndex = Integer.parseInt(defuseString);
-					Card card = player.getCardAt(defuseIndex);
-					if (checkMatchingCardType(card.getCardType(),
-							CardType.DEFUSE)) {
-						break;
+		EffectContext context = new EffectContext(game, inputProvider, outputProvider);
+		CardEffect effect = new ExplodingKittenEffect();
+		if (effect.canExecute(context)) {
+			effect.execute(context);
 					}
-					else if (checkMatchingCardType(card.getCardType(),
-					CardType.EXPLODING_KITTEN)) {
-						System.out.println(anotherExplodingKittenMessage);
-						player.removeCardFromHand(defuseIndex);
-						boolean exploded = playExplodingKitten(playerIndex);
-						if (!exploded) {
-							return false;
-						}
-						System.out.println(defusedFirstExplodingKitten);
-						if (!player.hasCard(CardType.DEFUSE)) {
-							System.out.println(noDefuseCardMessage);
-							System.out.println(youExplodedMessage);
-							return false;
-						}
-					} else if (checkMatchingCardType(card.getCardType(),
-						CardType.STREAKING_KITTEN)
-						&& player.hasCard(CardType.EXPLODING_KITTEN)) {
-						System.out.println(discardStreakingKittenMessage);
-						player.removeCardFromHand(defuseIndex);
-						player.removeCardFromHand(player.getIndexOfCard
-								(CardType.EXPLODING_KITTEN));
-						boolean exploded = playExplodingKitten(playerIndex);
-						if (!exploded) {
-							return false;
-						}
-						System.out.println(defusedFirstExplodingKitten);
-						if (!player.hasCard(CardType.DEFUSE)) {
-							System.out.println(noDefuseCardMessage);
-							System.out.println(youExplodedMessage);
-							return false;
-						}
-
-					} else {
-						System.out.println(notDefuseCardMessage);
-						player.removeCardFromHand(defuseIndex);
-						System.out.println(discardCardMessage);
-						System.out.println(reenterDefuseMessage);
-					}
-
-					} catch (Exception e) {
-						System.out.println(invalidInputMessage);
-					}
-				}
-			}
-
-			System.out.println(defusedMessage);
-			System.out.println(whereToInsertMessage);
-			System.out.println(validRangeMessage);
-			while (true) {
-				String userInput = scanner.nextLine();
-				try {
-					int userIndex = Integer.parseInt(userInput);
-					game.playDefuse(userIndex, playerIndex);
-					game.getPlayerAtIndex(playerIndex).setCursed(false);
-					return true;
-				} catch (NumberFormatException e) {
-					System.out.println(invalidInputMessage);
-				} catch (UnsupportedOperationException e) {
-					System.out.println(e.getMessage());
-				}
-			}
-		}
+		return !game.getPlayerAtIndex(playerIndex).getIsDead();
 	}
 
 	private boolean endTurn() {
@@ -1126,10 +1027,11 @@ public class GameUI {
 
 	private void playShuffle() {
 		EffectContext context = new EffectContext(game, inputProvider, outputProvider);
-		CardEffect effect = new ShuffleEffect();
+		CardEffect base = new ShuffleEffect();
+		CardEffect effect = new NopeInterceptor(base);
 		if (effect.canExecute(context)) {
 			effect.execute(context);
-		}
+			}
 	}
 
 	private void playSkip(boolean superSkip) {
